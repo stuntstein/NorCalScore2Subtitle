@@ -3,9 +3,10 @@ NorcalScore2Subtitle
 """
 
 '''
-20171115 Added Title
+20171115 Added heat name
 20171114 Fix heat with more than 10 drivers.
 20171110 Fix problem with Driver names. Fix for final print out. Clean up
+20171212 Added Race Title. Moved generated files to output folder. Added race duration to subtitle.
 '''
 
 from HTMLParser import HTMLParser, HTMLParseError
@@ -68,7 +69,7 @@ def stripText(text):
     return newlines
 
 # drivers must be 'name', lapCnt, lapTime
-def addSub(subTime, drivers, raceTime = None, title=None):
+def addSub(subTime, drivers, raceTime = None, raceDuration = 0, heatName=None, raceName=None):
     addSub.count += 1
     if raceTime == None:
         endTime = subTime + 90
@@ -81,16 +82,20 @@ def addSub(subTime, drivers, raceTime = None, title=None):
     int(endTime/60/60),int(endTime/60),int(endTime%60),int((endTime*1000)%1000)))
 
     if raceTime == None:
-        if title != None:
-            s += format('%s\n' % title)
+        if raceName != None:
+            s += format('%s\n' % raceName)
+        if heatName != None:
+            s += format('%s\n' % heatName)
         s += format('%s' % ('Race Over'))
     else:
         if raceTime < 0:
-            if title != None:
-                s += format('%s\n' % title)
-            s += format('-%02d:%02d' % (int(abs(raceTime)/60),int(abs(raceTime)%60)))
+            if raceName != None:
+                s += format('%s\n' % raceName)
+            if heatName != None:
+                s += format('%s\n' % heatName)
+            s += format('-%02d:%02d / %02d:%02d' % (int(abs(raceTime)/60),int(abs(raceTime)%60),int(raceDuration/60),int(raceDuration%60)))
         else:
-            s += format('%02d:%02d' % (int(raceTime/60),int(raceTime%60)))
+            s += format('%02d:%02d / %02d:%02d' % (int(raceTime/60),int(raceTime%60),int(raceDuration/60),int(raceDuration%60)))
 
     idx = 0
     for driver in drivers:
@@ -121,11 +126,14 @@ def parseScore(text):
 
     iterText = iter(text)
     for line in iterText:
+        if 'Scoring Software by' in line:
+            line = iterText.next()  # Advance one line
+            raceTitle = line.lstrip().rstrip()
         if 'Round' and 'Race' in line:
             # Get Heat name
-            race = " ".join(line.translate(None,'#*,').split())
+            heatName = " ".join(line.translate(None,'#*,').split())
             if verbose:
-                print '\tParse Heat %s' % race
+                print '\tParse Heat %s' % heatName
             # Get Drivers
             line = iterText.next()  # Advance one line
             if all(x in line for x in ['Driver','Car','Laps']):  # Alright, we found the start of a heat
@@ -204,7 +212,17 @@ def parseScore(text):
                             drvIdx += 1
                             e = 0
 
-            heats.append({'heatName': race, 'qual_order':qual_order, 'finish_order':main_result, 'raceData':driversLaps})
+            # find the race duration.
+            # Look for max value of the finishTime.
+            # Convert Time to seconds.
+            # Truncate to lowest 60 sec.
+            max = 0
+            for n in main_result:
+                if n['finishTime'] > max:
+                    max = n['finishTime']
+            raceDuration = map(int,re.split(r'[:.]',max))   # convert to min, second, 1/1000
+            raceDuration = raceDuration[0]*60
+            heats.append({'heatName': heatName, 'qual_order':qual_order, 'finish_order':main_result, 'raceData':driversLaps, 'raceDuration':raceDuration})
             ##break   ## set to limit to one heat
 
     print('Number of Heats: %d' % len(heats))
@@ -267,14 +285,14 @@ def parseScore(text):
                         if finalDriver['totalLaps'] == drivers[pos]['lapCnt']:
                             drivers[pos]['lapTime'] = finalDriver['finishTime']
 
-            s = addSub(time, drivers, raceTime, title=heat['heatName'])
+            s = addSub(time, drivers, raceTime, raceDuration=heat['raceDuration'], heatName=heat['heatName'],raceName=raceTitle)
             fo.write(s)
             time += 1
 
         ## break ## enable for debugging one heat
 
         ## we have no more in the sorted list
-        s = addSub(time, drivers, title=heat['heatName'])
+        s = addSub(time, drivers, heatName=heat['heatName'],raceName=raceTitle)
 #        s = addSub(time, heat['finish_order'])
         fo.write(s)
         fo.close()
@@ -287,7 +305,7 @@ def createFolder(text):
         if 'Scoring Software' in line:
             path = line[line.find('M  '):]
             path = path[3:].split('/')
-            path = path[2]+path[0]+path[1]
+            path = 'output/' + path[2]+path[0]+path[1]
             if not os.path.exists(path):
                 os.makedirs(path)
             os.chdir(path)
@@ -305,8 +323,8 @@ def checkResult(text):
     for line in text:
         if all(x in line for x in ['Round','Race']):
             # Get Heat name
-            race = " ".join(line.translate(None,'#*,').split())
-            timeOffsets[race] = {'offset':5}
+            heatName = " ".join(line.translate(None,'#*,').split())
+            timeOffsets[heatName] = {'offset':5}
     print('Found %d heats.' % len(timeOffsets))
     if args.debug == False:
         print('Please type the time ofset from when the race starts.')
