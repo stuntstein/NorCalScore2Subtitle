@@ -146,6 +146,10 @@ def parseScore(text):
                     # clean up Name. Sometimes an '*' is added
                     line = line.replace(' *', '*')
                     last_name = line.split(',',1)
+                    if len(last_name) < 2:
+                        # sometimes last and first name is not separated by comma
+                        last_name = line.lstrip().split(' ',1)
+
                     first_name = last_name[1].split('#',1)
                     line = first_name[1].split()
                     last_name = last_name[0].strip()
