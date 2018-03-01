@@ -129,7 +129,7 @@ def parseScore(text):
         if 'Scoring Software by' in line:
             line = iterText.next()  # Advance one line
             raceTitle = line.lstrip().rstrip()
-        if 'Round' and 'Race' in line:
+        if 'Round' in line and 'Race' in line:
             # Get Heat name
             heatName = " ".join(line.translate(None,'#*,').split())
             if verbose:
@@ -314,12 +314,11 @@ def createFolder(text):
                 os.makedirs(path)
             os.chdir(path)
             print('Store files in % s.' % path)
-            if args.save2file:
-                # To save to file for offline testing
-                fo = open('score_from_web.txt','w')
-                for n in text:
-                    fo.write(n+'\n')
-                fo.close()
+            # To save to file for offline testing
+            fo = open('score_from_web.txt','w')
+            for n in text:
+                fo.write(n+'\n')
+            fo.close()
             break
 
 def checkResult(text):
@@ -345,7 +344,6 @@ if __name__ == "__main__":
     parser.add_argument('--url','-u', dest='url', metavar='<URL>',required=True,
                     help='Url to the page with the race result')
 
-    parser.add_argument('--save2file','-s', action='store_true', help='copy race data from webpage to text file')
     parser.add_argument('--proxy','-p', dest='proxy')
     parser.add_argument('--verbose','-v', action='store_true')
     parser.add_argument('--debug','-d', action='store_true')
@@ -354,17 +352,22 @@ if __name__ == "__main__":
     url = args.url
     proxies = {}
 
-    if args.url != '' and args.debug == False:
+    if args.url != '':
         # For fetching from internet
         if args.proxy != None:
             proxies['http'] = args.proxy
         htmltext = urllib.urlopen(url, proxies=proxies).read()
         text = html_to_text(htmltext)
         text = stripText(text)
+        fo = open('html.txt','w')
+        fo.write(htmltext)
+        fo.close()
+
     else:
         ## For offline testing
         file = open('score_from_web.txt')    # instead of reading from web
         text = file.read()
+        file.close
         text = stripText(text)
 
     print('Get data from %s ' % url)
