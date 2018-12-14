@@ -13,7 +13,7 @@ from HTMLParser import HTMLParser, HTMLParseError
 from htmlentitydefs import name2codepoint
 import re
 import urllib
-import numpy as np
+#import numpy as np
 import sys
 import os
 import argparse
@@ -273,6 +273,12 @@ def parseScore(text):
                 ## Swap 2 driver positions
                 nextEntry = oneList[n]
                 pos = nextEntry['lapData']['pos'] - 1   # Next entry. Get his position
+                if pos >= len(drivers):         # Sometimes I see a position higher that the number of drivers!
+                    pos -= 1                    # If only 1 too high trim it down.
+                else:
+                    if pos > len(drivers):      # Stop if pos is too high. Something is bad
+                        print 'ERROR',pos,nextEntry
+                        exit(1)
                 tmp = drivers[pos]                    # Find the driver on that position
                 if tmp['name'] != nextEntry['driver']:    # Check that it is not the same driver
                 # swap position. Tmp goes to nextEntry's old position
