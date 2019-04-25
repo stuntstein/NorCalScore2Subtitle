@@ -1,5 +1,7 @@
 # NorCalScore2Subtitle
 
+# Deprecated. Norcal change RC scoring program to LiveRC. Check out https://github.com/stuntstein/LiveRC2Subtitle
+
 usage:
 NorCalScore2Subtitle <url to norcal race result>
 
